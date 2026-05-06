@@ -152,7 +152,7 @@ async def call_claude(refs, style):
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-4-6",
                 "max_tokens": 1000,
                 "system": prompt,
                 "messages": [{"role": "user", "content": "Genera 5 testi meme. Sii brutalmente divertente."}]
@@ -275,10 +275,10 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         photo = update.message.photo[-1]
         file = await context.bot.get_file(photo.file_id)
+        img_bytearray = await file.download_as_bytearray()
+        img_bytes = bytes(img_bytearray)
+        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
         async with httpx.AsyncClient(timeout=30) as client:
-            img_response = await client.get(file.file_path)
-            img_bytes = img_response.content
-            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
             response = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
@@ -287,7 +287,7 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-6",
                     "max_tokens": 500,
                     "messages": [{
                         "role": "user",
