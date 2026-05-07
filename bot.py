@@ -22,14 +22,11 @@ CHAT_ID = os.environ.get("CHAT_ID")
 DATA_FILE = "data.json"
 
 GRADIENTS = [
-    [(147, 51, 234), (236, 72, 153)],    # viola -> rosa
-    [(249, 115, 22), (234, 179, 8)],      # arancio -> giallo
-    [(59, 130, 246), (16, 185, 129)],     # blu -> verde
-    [(236, 72, 153), (248, 113, 113)],    # rosa -> rosso
-    [(99, 102, 241), (139, 92, 246)],     # indigo -> viola
-    [(20, 184, 166), (59, 130, 246)],     # teal -> blu
-    [(239, 68, 68), (249, 115, 22)],      # rosso -> arancio
-    [(168, 85, 247), (59, 130, 246)],     # viola -> blu
+    [(200, 30, 220), (240, 60, 150)],    # viola -> rosa
+    [(255, 100, 10), (240, 190, 0)],     # arancio -> giallo
+    [(240, 50, 130), (255, 100, 80)],    # rosa -> corallo
+    [(100, 80, 240), (220, 50, 160)],    # indigo -> fucsia
+    [(240, 40, 40), (255, 120, 10)],     # rosso -> arancio
 ]
 
 STYLE_FORMATS = {
@@ -85,18 +82,18 @@ def make_gradient(w, h, c1, c2):
     return img
 
 def generate_meme_image(text):
-    W, H = 1080, 1080
+    W, H = 1080, 1920
     colors = random.choice(GRADIENTS)
     img = make_gradient(W, H, colors[0], colors[1])
     draw = ImageDraw.Draw(img)
 
-    font_size = 72
+    font_size = 130
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
     except:
         font = ImageFont.load_default()
 
-    margin = 80
+    margin = 100
     max_w = W - margin * 2
 
     def wrap_text(text, font, max_width):
@@ -121,7 +118,7 @@ def generate_meme_image(text):
         return lines
 
     lines = wrap_text(text, font, max_w)
-    line_h = font_size + 16
+    line_h = font_size + 28
     total_h = len(lines) * line_h
     y = (H - total_h) // 2
 
@@ -129,7 +126,7 @@ def generate_meme_image(text):
         bbox = draw.textbbox((0, 0), line, font=font)
         lw = bbox[2] - bbox[0]
         x = (W - lw) // 2
-        draw.text((x + 3, y + 3), line, font=font, fill=(0, 0, 0, 80))
+        draw.text((x + 4, y + 4), line, font=font, fill=(0, 0, 0, 120))
         draw.text((x, y), line, font=font, fill=(255, 255, 255))
         y += line_h
 
