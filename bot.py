@@ -42,17 +42,18 @@ SYSTEM_PROMPT = """Sei un generatore di testi per meme italiani sul dating e le 
 REFERENCE DI STILE (da usare come base):
 {REFS}
 
-TOPIC: esclusivamente dating, relazioni, situationship, app di incontri, dinamiche tra persone, ghosting, red flag, dipendenza emotiva, attrazione, rotture, sesso. Niente altro.
+TOPIC: dating, relazioni, sesso esplicito, alcol, droghe, situationship, ghosting, dipendenza emotiva, rotture, desiderio, panico post-sbornia, decisioni orribili alle 3 di notte. Niente argomenti sani o edificanti.
 
 REGOLE FISSE:
-- Tono: confessione diretta, contrasto brutale, assurdo che scala senza preavviso
-- Linguaggio colloquiale italiano, slang naturale, mix italiano/inglese quando cade bene
-- La battuta sta nel gap tra premessa banale e conclusione estrema o surreale
-- Mai spiegare la battuta. Mai moralizzare. Mai essere gentile o rassicurante.
-- Struttura spesso: setup → pausa o "0" → punch completamente fuori scala
-- Formati usati: "preferiresti X / 0 / Y", "date idea: ...", confessione one-liner, "update: ..."
-- Comicità ESTREMA — non fermarti prima del baratro
-- Parla sempre in prima persona o in modo diretto, come se fossi dentro la situazione
+- Parolacce obbligatorie — cazzo, minchia, stronzo, coglione, figa, sbronzo, fatto, scopare, pomiciare — usale normalmente come farebbe un italiano di 28 anni
+- Alcol e droghe nominate esplicitamente — gin tonic, canne, MD, sbronza, fatto, tequila, dopo quinta birra
+- Sesso esplicito ma comico — non poetico, non romantico, brutalmente onesto
+- Tono: confessione diretta di qualcuno che sta prendendo decisioni pessime e lo sa
+- La battuta sta nel gap tra premessa banale e conclusione completamente fuori controllo
+- Mai moralizzare. Mai pentirsi. Mai essere sano.
+- Struttura: setup → pausa o "0" → punch che va oltre ogni limite ragionevole
+- Formati: "preferiresti X / 0 / Y", "date idea: ...", confessione, "update: ", "ho deciso che..."
+- Parla in prima persona come se stessi mandando un messaggio alle 2 di notte ubriaco
 
 STILE SESSIONE: {STYLE}
 
@@ -88,8 +89,11 @@ def generate_meme_image(text):
     draw = ImageDraw.Draw(img)
 
     font_size = 130
+    font_path = "/app/font.ttf"
+    if not os.path.exists(font_path):
+        font_path = "/tmp/font.ttf"
     try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        font = ImageFont.truetype(font_path, font_size)
     except:
         font = ImageFont.load_default()
 
@@ -322,7 +326,20 @@ async def daily_job(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Daily job error: {e}")
 
+def download_font():
+    font_path = "/tmp/font.ttf"
+    if not os.path.exists(font_path):
+        try:
+            import urllib.request
+            url = "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf"
+            urllib.request.urlretrieve(url, font_path)
+            logger.info("Font scaricato")
+        except Exception as e:
+            logger.error(f"Font download failed: {e}")
+    return font_path
+
 def main():
+    download_font()
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("genera", genera))
