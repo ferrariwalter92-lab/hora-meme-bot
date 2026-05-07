@@ -83,34 +83,39 @@ def make_gradient(w, h, c1, c2):
     return img
 
 def generate_meme_image(text):
+    from PIL import ImageFilter
     W, H = 1080, 1920
     colors = random.choice(GRADIENTS)
     img = make_gradient(W, H, colors[0], colors[1])
-    draw = ImageDraw.Draw(img)
-
-    font_size = 130
-    font_path = "/app/font.ttf"
-    if not os.path.exists(font_path):
-        font_path = "/tmp/font.ttf"
-    try:
-        font = ImageFont.truetype(font_path, font_size)
-    except:
-        font = ImageFont.load_default()
 
     margin = 100
     max_w = W - margin * 2
+    max_h = H - margin * 2
 
-    def wrap_text(text, font, max_width):
+    font_path = "/tmp/font.ttf"
+    if not os.path.exists(font_path):
+        font_path = None
+
+    def get_font(size):
+        if font_path and os.path.exists(font_path):
+            try:
+                return ImageFont.truetype(font_path, size)
+            except:
+                pass
+        return ImageFont.load_default()
+
+    def wrap(txt, fnt, max_width):
+        draw_tmp = ImageDraw.Draw(img)
         lines = []
-        for paragraph in text.split("\n"):
-            words = paragraph.split()
+        for para in txt.split("\n"):
+            words = para.split()
             if not words:
                 lines.append("")
                 continue
             line = ""
             for word in words:
                 test = (line + " " + word).strip()
-                bbox = draw.textbbox((0, 0), test, font=font)
+                bbox = draw_tmp.textbbox((0, 0), test, font=fnt)
                 if bbox[2] - bbox[0] <= max_width:
                     line = test
                 else:
@@ -121,21 +126,59 @@ def generate_meme_image(text):
                 lines.append(line)
         return lines
 
-    lines = wrap_text(text, font, max_w)
-    line_h = font_size + 28
-    total_h = len(lines) * line_h
-    y = (H - total_h) // 2
+    # Find largest font size that fits vertically
+    font_size = 160
+    while font_size > 40:
+        font = get_font(font_size)
+        lines = wrap(text, font, max_w)
+        line_h = int(font_size * 1.3)
+        total_h = len(lines) * line_h
+        if total_h <= max_h:
+            break
+        font_size -= 6
 
+    font = get_font(font_size)
+    lines = wrap(text, font, max_w)
+    line_h = int(font_size * 1.3)
+    total_h = len(lines) * line_h
+    y_start = (H - total_h) // 2
+
+    # Soft shadow layer
+    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    y = y_start
     for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=font)
+        if not line:
+            y += line_h
+            continue
+        fnt_tmp = get_font(font_size)
+        bbox = sd.textbbox((0, 0), line, font=fnt_tmp)
         lw = bbox[2] - bbox[0]
         x = (W - lw) // 2
-        draw.text((x + 4, y + 4), line, font=font, fill=(0, 0, 0, 120))
-        draw.text((x, y), line, font=font, fill=(255, 255, 255))
+        sd.text((x + 4, y + 4), line, font=fnt_tmp, fill=(0, 0, 0, 80))
+        y += line_h
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=6))
+
+    # Compose
+    img_rgba = img.convert("RGBA")
+    img_rgba = Image.alpha_composite(img_rgba, shadow)
+    draw = ImageDraw.Draw(img_rgba)
+
+    y = y_start
+    for line in lines:
+        if not line:
+            y += line_h
+            continue
+        fnt_tmp = get_font(font_size)
+        bbox = draw.textbbox((0, 0), line, font=fnt_tmp)
+        lw = bbox[2] - bbox[0]
+        x = (W - lw) // 2
+        draw.text((x, y), line, font=fnt_tmp, fill=(255, 255, 255, 255))
         y += line_h
 
+    img_final = img_rgba.convert("RGB")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img_final.save(buf, format="PNG")
     buf.seek(0)
     return buf
 
@@ -331,7 +374,8 @@ def download_font():
     if not os.path.exists(font_path):
         try:
             import urllib.request
-            url = "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf"
+            # Nunito Bold - clean, round, readable like Helvetica
+            url = "https://github.com/google/fonts/raw/main/ofl/nunito/Nunito%5Bwght%5D.ttf"
             urllib.request.urlretrieve(url, font_path)
             logger.info("Font scaricato")
         except Exception as e:
